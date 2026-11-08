@@ -1,0 +1,73 @@
+name: apiforhack-tests
+
+x-test-environment: &test-environment
+  APP_CONFIG__DB__HOST: postgres
+  APP_CONFIG__DB__PORT: "5432"
+  APP_CONFIG__DB__NAME: apiforhack_test
+  APP_CONFIG__AUTH: '{}'
+  APP_CONFIG__AUTH__APP_KEY: docker-test-key
+  APP_CONFIG__CORS: '{}'
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: apiforhack_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test_superuser
+      DB_MIGRATION_USER: apiforhack_owner
+      DB_MIGRATION_PASSWORD: test_owner
+      DB_APP_USER: apiforhack_runtime
+      DB_APP_PASSWORD: test_runtime
+    healthcheck:
+      test:
+        ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "apiforhack_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql
+    volumes:
+      - ./docker/postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-init-roles.sh:ro
+    restart: "no"
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    environment:
+      <<: *test-environment
+      APP_CONFIG__DB__USER: apiforhack_owner
+      APP_CONFIG__DB__PASSWORD: test_owner
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["alembic", "-c", "src/alembic.ini", "upgrade", "head"]
+    restart: "no"
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    init: true
+    environment:
+      <<: *test-environment
+      APP_CONFIG__DB__USER: apiforhack_runtime
+      APP_CONFIG__DB__PASSWORD: test_runtime
+      RUN_DB_TESTS: "1"
+      TEST_MIGRATION_DATABASE_URL: postgresql+asyncpg://apiforhack_owner:test_owner@postgres:5432/apiforhack_test
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: "no"
+
+networks:
+  default:
+    internal: true

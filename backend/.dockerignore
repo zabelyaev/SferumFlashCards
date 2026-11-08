@@ -1,0 +1,13 @@
+.git/
+.env*
+.venv/
+__pycache__/
+*.py[codz]
+.coverage
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+build/
+dist/
+*.egg-info/
+secrets/

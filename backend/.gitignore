@@ -1,0 +1,17 @@
+.env*
+!.env.example
+.venv/
+__pycache__/
+*.py[codz]
+.coverage
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+build/
+dist/
+*.egg-info/
+.idea/
+secrets/*
+!secrets/README.md
+!secrets/*.example

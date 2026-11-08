@@ -1,0 +1,9 @@
+{
+  "venv": ".venv",
+  "venvPath": ".",
+  "include": [ "src/**/*.py" ],
+  "exclude": [
+    "**/__pycache__",
+    ".venv"
+  ]
+}
